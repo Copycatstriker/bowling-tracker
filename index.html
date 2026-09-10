@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bowling Tracker</title>
+<style>
+:root{--bg:#061321;--panel:#0b1a2c;--border:#213953;--text:#f5f7fb;--muted:#9eacc0;--blue:#39a5ff;--red:#ff3030}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;min-height:100%;overflow-x:hidden;overflow-y:auto;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}
+.app{width:100vw;min-height:calc(100vh - 64px);padding:14px 28px 82px;max-width:none;overflow:visible}
+.header{height:82px;display:grid;grid-template-columns:330px 1fr 1fr 230px 150px;gap:28px;align-items:start}
+.brand h1{margin:0;font-size:30px;line-height:1}.brand small{font-size:13px;color:var(--muted)}
+label{display:block;color:#aebbd0;font-size:12px;margin-bottom:5px}
+.selected-pattern{height:42px;width:100%;display:flex;align-items:center;padding:0 12px;background:#0a1728;border:1px solid var(--border);border-radius:7px;font-weight:700}
+select,input{height:42px;width:100%;background:#0a1728;border:1px solid #263d59;border-radius:8px;color:var(--text);padding:0 14px;outline:none}
+.hand{display:flex}.hand button{height:42px;background:#0a1728;border:1px solid #263d59;color:#dbe5f2;padding:0 18px;font-weight:700}.hand button:first-child{border-radius:8px 0 0 8px}.hand button:last-child{border-left:0;border-radius:0 8px 8px 0}.hand .active{background:var(--blue);color:#061321;border-color:var(--blue)}
+.settings{height:42px;border:0;background:transparent;color:var(--text);font-weight:650;text-align:left;padding:0}
+.tabs{height:52px;display:flex;gap:16px;align-items:start}.tabs button{min-width:105px;height:46px;border:1px solid #29435f;border-radius:9px;background:#0d1c2e;color:#cad5e3;font-weight:750}.tabs button.active{background:var(--blue);color:#061321;border-color:var(--blue)}
+.lane-section{height:286px;display:grid;grid-template-columns:48px 1fr;gap:0}
+.board-scale{display:flex;flex-direction:column;justify-content:space-between;padding:14px 6px 28px 0;color:#d9e2ee;font-size:11px;text-align:center}
+.lane{position:relative;background:#07111e;border:1px solid #1b324b;overflow:hidden}.lane svg{display:block;width:100%;height:100%}
+.below{height:116px;display:grid;grid-template-columns:1.08fr 1.72fr .52fr;gap:12px;margin-top:8px}
+.card{background:#0b1a2c;border:1px solid #213953;border-radius:9px;padding:9px 14px;min-width:0}
+.card h3{font-size:13px;margin:0 0 5px}.oil-svg{width:100%;height:68px;display:block}.oil-svg svg{width:100%;height:68px;display:block}.scale{display:flex;justify-content:space-between;color:#aebbd0;font-size:9px}
+.controls{display:grid;grid-template-columns:1.25fr .72fr .95fr 1fr .95fr;gap:9px;align-items:end}.controls label{font-size:11px}.controls input,.controls select{height:40px}
+.legend{font-size:11px;line-height:1.65;color:#c9d4e3}.redline{display:inline-block;width:34px;border-top:3px solid var(--red);margin:0 9px 3px 0}.dot{display:inline-block;width:17px;height:17px;border-radius:50%;background:#fff;border:3px solid var(--red);vertical-align:middle;margin:0 11px 0 1px}
+.bottom{height:72px;display:grid;grid-template-columns:.75fr 1.45fr .52fr;gap:22px;align-items:end}.bottom input{height:42px}.bottom button{height:42px;border:0;border-radius:8px;background:var(--blue);color:#061321;font-weight:800}
+.nav{position:fixed;left:0;right:0;bottom:0;height:64px;background:#0a1729;border-top:1px solid #203953}.nav-inner{height:100%;width:100%;display:grid;grid-template-columns:repeat(3,1fr)}.nav button{border:0;background:transparent;color:#aebbd0;font-size:12px}.nav button.active{color:var(--blue)}
+.screen{display:none}.screen.active{display:block;min-height:100%}.session,.summary{max-width:760px;margin:25px auto}.session .card,.summary-card{padding:18px}.session .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.session .start{margin-top:18px;width:100%;height:46px;border:0;border-radius:9px;background:var(--blue);font-weight:800;color:#061321}
+ .start{background:var(--blue);color:#061321;border:0;border-radius:8px;font-weight:800}
+/* Gemensam styling för alla tillbakaknappar */
+.back{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;min-width:118px;padding:0 16px;margin:0 0 16px;border:1px solid #36526f;border-radius:9px;background:#13243a;color:#f5f7fb;font-size:14px;font-weight:750;line-height:1;box-shadow:0 2px 7px rgba(0,0,0,.22);transition:background .15s,border-color .15s,transform .08s}
+.back:hover{background:#1a304b;border-color:#4b7197}
+.back:active{transform:translateY(1px);background:#102238}
+.back:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.orientation{display:none}
+@media(max-width:700px) and (orientation:portrait){
+  .app{padding:10px 12px 82px;min-height:auto}
+  .header{height:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .brand{grid-column:1/-1}.brand h1{font-size:24px}
+  .header .settings{display:none}
+  .tabs{overflow-x:auto;height:48px;gap:8px}
+  .tabs button{min-width:86px;padding:8px 15px}
+  .lane-section{height:auto;grid-template-columns:31px 1fr}
+  .board-scale{font-size:9px;padding:10px 3px 24px 0}
+  .lane{min-height:170px}
+  .lane svg{min-height:170px}
+  .below{height:auto;display:grid;grid-template-columns:1fr;gap:8px}
+  .controls{grid-template-columns:1.2fr .8fr}
+  .legend{display:none}
+  .bottom{height:auto;grid-template-columns:1fr;gap:9px}
+  .bottom button{width:100%}
+  .oil-svg{height:70px}
+}
+@media(max-height:520px) and (min-aspect-ratio:1.5/1){
+ .app{padding:8px 18px 68px;min-height:calc(100vh - 52px);height:auto}
+ .header{height:67px;grid-template-columns:280px 1fr 1fr 185px 125px;gap:18px}
+ .brand h1{font-size:25px}.header select,.header .hand button{height:36px}.header label{font-size:10px}.settings{height:36px}
+ .tabs{height:43px}.tabs button{height:38px;min-width:92px}
+ .lane-section{height:215px}.below{height:91px;gap:8px}.card{padding:6px 10px}.oil-svg,.oil-svg svg{height:55px}.controls{gap:6px}.controls input,.controls select{height:34px}.controls label{font-size:9px}
+ .bottom{height:59px;gap:15px}.bottom input,.bottom button{height:36px}.nav{height:52px}
+}
+
+/* Permanent menu button */
+.menu-btn{position:fixed;top:12px;right:12px;z-index:1000;width:44px;height:44px;border:1px solid rgba(255,255,255,.16);border-radius:12px;background:#17243a;color:#fff;font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+.menu-btn:active{transform:scale(.97)}
+.menu-panel{position:fixed;top:64px;right:12px;z-index:999;display:none;min-width:190px;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:#111c2d;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.menu-panel.open{display:block}
+.menu-panel button{display:block;width:100%;padding:11px 12px;margin:0;border:0;border-radius:9px;background:transparent;color:#fff;text-align:left;font-size:15px;cursor:pointer}
+.menu-panel button:hover{background:rgba(255,255,255,.08)}
+.menu-parent{display:flex!important;align-items:center;justify-content:space-between!important}
+.menu-parent span{font-size:20px;opacity:.75}
+.submenu{display:none;padding:2px 0 2px 10px}
+.submenu.open{display:block}
+.submenu-item{font-size:14px!important;padding:9px 12px!important;opacity:.9}
+.test-version-note{margin:8px 6px 4px;padding:8px 8px 4px;border-top:1px solid rgba(255,255,255,.10);color:var(--muted);font-size:11px;line-height:1.35}
+
+
+.lang-picker{display:flex;align-items:center;justify-content:center;gap:4px;padding:0 8px}.lang-picker button{height:42px;min-width:42px;border:1px solid transparent;border-radius:9px;background:transparent;font-size:22px;opacity:.65}.lang-picker button.active{background:#13243a;border-color:#36526f;opacity:1}.lang-picker button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:700px) and (orientation:portrait){.nav-inner{grid-template-columns:repeat(3,1fr) 1.15fr}.lang-picker{padding:0 2px}.lang-picker button{min-width:34px;font-size:19px}}
+</style>
+</head>
+<body>
+<button class="menu-btn" id="menuBtn" aria-label="Öppna meny" data-i18n-aria="menuOpen" aria-expanded="false">☰</button>
+<div class="menu-panel" id="menuPanel">
+  <button type="button" class="menu-parent" id="settingsMenuBtn" aria-expanded="false" data-i18n="settings">Inställningar <span>›</span></button>
+  <div class="submenu" id="settingsSubmenu">
+    <button type="button" class="submenu-item" id="profileMenuBtn" data-i18n="myProfile">Min profil</button>
+    <button type="button" class="submenu-item" id="myBallsMenuBtn" data-i18n="myBalls">Mina klot</button>
+  </div>
+  <button type="button" class="menu-parent" id="savedDataMenuBtn" data-i18n="savedData">Sparad data <span>›</span></button>
+  <div class="test-version-note" data-i18n="testVersionNote">Testversion · All data sparas lokalt på din enhet.</div>
+</div>
+
+
+
+<div class="app">
+  <section id="profile" class="screen">
+    <div class="session">
+      <button class="back" type="button" onclick="go('patterns')">← <span data-i18n="back">Tillbaka</span></button>
+      <div class="card">
+        <h2 data-i18n="myProfile">Min profil</h2>
+        <p style="color:var(--muted)"><span data-i18n="profileHandDescription">Välj vilken hand du spelar med. Valet sparas automatiskt.</span></p>
+        <div class="hand">
+          <button id="profileRH" type="button" onclick="setHand('Höger')">✋ <span data-i18n="rightHand">Högerhänt</span></button>
+          <button id="profileLH" type="button" onclick="setHand('Vänster')">✋ <span data-i18n="leftHand">Vänsterhänt</span></button>
+        </div>
+        <p style="color:var(--muted);margin-top:18px"><span data-i18n="profileThumbDescription">Välj om du spelar med tumme eller utan tumme. Valet sparas automatiskt.</span></p>
+        <div class="hand">
+          <button id="profileThumb" type="button" onclick="setThumb(true)">👍 <span data-i18n="withThumb">Med tumme</span></button>
+          <button id="profileNoThumb" type="button" onclick="setThumb(false)">☝️ <span data-i18n="withoutThumb">Utan tumme</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sessionSetup" class="screen">
+    <div class="session">
+      <button class="back" onclick="go('patterns')">← <span data-i18n="oilProfile">Oljeprofil</span></button>
+      <div class="card">
+        <h2 data-i18n="bowlingPass">Bowlingpass</h2>
+        <div class="row">
+          <div><label data-i18n="selectedOilProfile">Vald oljeprofil</label><div id="setupPatternDisplay" class="selected-pattern">—</div></div>
+          <div><label data-i18n="hall">Hall</label><input id="setupHall" data-i18n-placeholder="hallPlaceholder" placeholder="T.ex. Mariehamns bowlinghall"></div>
+          <div><label data-i18n="lanes">Banor / banpar</label><input id="setupLanes" data-i18n-placeholder="lanesPlaceholder" placeholder="T.ex. 3–4"></div>
+          <div><label data-i18n="seriesCount">Antal serier</label><select id="setupSeries"><option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option></select></div>
+        </div>
+        <button id="startPassBtn" class="start" type="button" data-i18n="startBowlingPass">Starta bowlingpass</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="myBalls" class="screen">
+    <div class="session">
+      <button class="back" type="button" onclick="go('patterns')">← <span data-i18n="back">Tillbaka</span></button>
+      <div class="card">
+        <h2 data-i18n="myBalls">Mina klot</h2>
+        <p style="color:var(--muted)"><span data-i18n="myBallsDescription">Lägg till de klot du har i ditt eget klotbibliotek.</span></p>
+        <button id="addBallBtn" class="start" type="button" style="width:100%;margin-top:12px" data-i18n="addBall">＋ Lägg till klot</button>
+        <div id="addBallForm" style="display:none;margin-top:14px">
+          <label data-i18n="manufacturer">Tillverkare</label>
+          <select id="ballManufacturerSelect" style="width:100%;margin-top:6px">
+            <option value="" data-i18n="chooseManufacturer">Välj tillverkare...</option>
+            <option>Brunswick</option><option>DV8</option><option>Ebonite</option><option>Global</option>
+            <option>Hammer</option><option>Motiv</option><option>Radical</option><option>Roto Grip</option><option>Storm</option>
+          </select>
+          <div id="ballModelWrap" style="display:none;margin-top:12px">
+            <label data-i18n="bowlingBall">Bowlingklot</label>
+            <select id="ballCatalogSelect" style="width:100%;margin-top:6px"></select>
+          </div>
+        </div>
+        <div id="myBallList" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="savedData" class="screen">
+    <div class="session">
+      <button class="back" type="button" onclick="go('patterns')">← <span data-i18n="back">Tillbaka</span></button>
+      <div class="card">
+        <h2 data-i18n="savedData">Sparad data</h2>
+        <p style="color:var(--muted)"><span data-i18n="savedDescription">Här sparas alla färdiga bowlingpass på den här enheten.</span></p>
+        <div id="savedSessionsList" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="savedSessionDetail" class="screen">
+    <div class="session">
+      <button class="back" type="button" onclick="go('savedData')">← Sparad data</button>
+      <div class="card">
+        <h2 id="savedDetailTitle" data-i18n="savedSession">Sparad session</h2>
+        <div id="savedDetailMeta" style="color:var(--muted)"></div>
+        <div id="savedDetailRows" style="margin-top:16px"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="patterns" class="screen">
+    <div class="header">
+      <div class="brand"><h1>Bowling Tracker</h1><small data-i18n="patternLibrary">Pattern Library</small></div>
+      <div><label data-i18n="oilProfile">Oljeprofil</label><select id="patternSelect" onchange="selectPattern()"></select></div>
+      <button class="settings" type="button">⚙ <span data-i18n="settings">Inställningar</span></button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3 id="patternName"></h3>
+      <div id="patternMeta" style="color:var(--muted)"></div>
+      <div style="margin-top:10px" class="oil-svg" id="patternOil"></div>
+    </div>
+    <button class="start" style="margin-top:10px;width:100%;height:44px;border:0;border-radius:8px;background:var(--blue);font-weight:800" onclick="openSetup()" data-i18n="startNewPass">Starta nytt bowlingpass</button>
+  </section>
+
+  <section id="series" class="screen">
+    <div class="header">
+      <div class="brand"><h1>Bowling Tracker</h1><small data-i18n="seriesEntry">Serieinmatning</small></div>
+      <button class="settings" type="button">⚙ <span data-i18n="settings">Inställningar</span></button>
+    </div>
+
+    <div class="tabs" id="seriesTabs"></div>
+
+    <div class="below">
+      <div class="card"><h3 data-i18n="oilProfilePerBoard">Oljeprofil (µL per bräda)</h3><div id="oilChart"></div><div class="scale"><span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50+</span></div></div>
+      <div class="card">
+        <div class="controls" style="grid-template-columns:1.25fr .72fr .9fr .9fr">
+          <div><label data-i18n="ball">Klot</label><select id="ball"><option value="">Välj ett av Mina klot...</option></select></div>
+          <div><label data-i18n="surface">Yta</label><input id="surface" value="2000 grit"></div>
+          <div><label data-i18n="startBoard">Startpunkt i ansatsen (bräda 1–39)</label><select id="startBoard"></select></div>
+          <div><label data-i18n="targetBoard">Målpunkt (bräda 1–39)</label><select id="targetBoard"></select></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div><label data-i18n="result">Resultat</label><input id="score" type="number" min="0" max="300" data-i18n-placeholder="scorePlaceholder" placeholder="Poäng"></div>
+      <div><label data-i18n="comment">Kommentar</label><input id="note" data-i18n-placeholder="commentPlaceholder" placeholder="Valfri kommentar"></div>
+      <button type="button" onclick="saveSeries()" data-i18n="saveSeries">Spara serie</button>
+    </div>
+  </section>
+
+  <section id="summary" class="screen">
+    <div class="summary"><button class="back" onclick="go('series')">← <span data-i18n="series">Serier</span></button><div class="summary-card"><h2 id="sumTitle"></h2><div id="sumMeta" style="color:var(--muted)"></div><h1 id="sumScore"></h1><div id="sumRows"></div><button id="saveSessionBtn" class="start" type="button" style="width:100%;height:46px;margin-top:18px" data-i18n="saveSession">Spara sessionen</button></div></div>
+  </section>
+</div>
+
+<nav class="nav"><div class="nav-inner"><button id="navPatterns" onclick="go('patterns')">🎳<br><span data-i18n="oilProfile">Oljeprofil</span></button><button onclick="openSetup()">＋<br><span data-i18n="newPass">Nytt pass</span></button><button onclick="go('summary')">📊<br><span data-i18n="history">Historik</span></button><div class="lang-picker" aria-label="Language"><button type="button" data-lang="sv" onclick="setLanguage('sv')">🇸🇪</button><button type="button" data-lang="en" onclick="setLanguage('en')">🇬🇧</button><button type="button" data-lang="fi" onclick="setLanguage('fi')">🇫🇮</button></div></div></nav>
+
+<script>
+const translations={
+ sv:{menuOpen:'Öppna meny',settings:'Inställningar',myProfile:'Min profil',myBalls:'Mina klot',savedData:'Sparad data',back:'Tillbaka',rightHand:'Högerhänt',leftHand:'Vänsterhänt',withThumb:'Med tumme',withoutThumb:'Utan tumme',profileHandDescription:'Välj vilken hand du spelar med. Valet sparas automatiskt.',profileThumbDescription:'Välj om du spelar med tumme eller utan tumme. Valet sparas automatiskt.',oilProfile:'Oljeprofil',bowlingPass:'Bowlingpass',selectedOilProfile:'Vald oljeprofil',hall:'Hall',lanes:'Banor / banpar',seriesCount:'Antal serier',startBowlingPass:'Starta bowlingpass',addBall:'＋ Lägg till klot',manufacturer:'Tillverkare',chooseManufacturer:'Välj tillverkare...',bowlingBall:'Bowlingklot',savedSession:'Sparad session',patternLibrary:'Pattern Library',startNewPass:'Starta nytt bowlingpass',seriesEntry:'Serieinmatning',oilProfilePerBoard:'Oljeprofil (µL per bräda)',ball:'Klot',surface:'Yta',startBoard:'Startpunkt i ansatsen (bräda 1–39)',targetBoard:'Målpunkt (bräda 1–39)',result:'Resultat',comment:'Kommentar',saveSeries:'Spara serie',series:'Serier',saveSession:'Spara sessionen',newPass:'Nytt pass',history:'Historik',savedDescription:'Här sparas alla färdiga bowlingpass på den här enheten.',testVersionNote:'Testversion · All data sparas lokalt på din enhet.',myBallsDescription:'Lägg till de klot du har i ditt eget klotbibliotek.',chooseBall:'Välj bowlingklot...',chooseMyBall:'Välj ett av Mina klot...',addBallFirst:'Lägg först till ett klot under Mina klot',noBalls:'Inga klot tillagda ännu.',deleteBall:'Ta bort klot',noSavedSessions:'Inga sparade bowlingpass ännu.',viewHint:'Tryck för att se klot, yta, ribbor och kommentarer →',total:'totalt',average:'i snitt',points:'poäng',ballLabel:'Klot:',surfaceLabel:'Yta:',startLabel:'Startpunkt i ansatsen:',targetLabel:'Målpunkt:',commentLabel:'Kommentar:',notSpecified:'Ej angivet',noComment:'Ingen kommentar',unknownHall:'Okänd hall',unknownPattern:'Okänd oljeprofil',sessionSaved:'✓ Session sparad',hallPlaceholder:'T.ex. Mariehamns bowlinghall',lanesPlaceholder:'T.ex. 3–4',scorePlaceholder:'Poäng',commentPlaceholder:'Valfri kommentar'},
+ en:{menuOpen:'Open menu',settings:'Settings',myProfile:'My profile',myBalls:'My balls',savedData:'Saved data',back:'Back',rightHand:'Right-handed',leftHand:'Left-handed',withThumb:'With thumb',withoutThumb:'No thumb',profileHandDescription:'Choose your bowling hand. The choice is saved automatically.',profileThumbDescription:'Choose whether you bowl with or without your thumb. The choice is saved automatically.',oilProfile:'Oil profile',bowlingPass:'Bowling session',selectedOilProfile:'Selected oil profile',hall:'Bowling center',lanes:'Lanes / lane pair',seriesCount:'Number of games',startBowlingPass:'Start bowling session',addBall:'＋ Add ball',manufacturer:'Manufacturer',chooseManufacturer:'Choose manufacturer...',bowlingBall:'Bowling ball',savedSession:'Saved session',patternLibrary:'Pattern Library',startNewPass:'Start new bowling session',seriesEntry:'Game entry',oilProfilePerBoard:'Oil profile (µL per board)',ball:'Ball',surface:'Surface',startBoard:'Approach start (board 1–39)',targetBoard:'Target board (board 1–39)',result:'Score',comment:'Comment',saveSeries:'Save game',series:'Games',saveSession:'Save session',newPass:'New session',history:'History',savedDescription:'Completed bowling sessions are saved on this device.',testVersionNote:'Test version · All data is saved locally on your device.',myBallsDescription:'Add the balls you have to your personal ball library.',chooseBall:'Choose bowling ball...',chooseMyBall:'Choose from My balls...',addBallFirst:'Add a ball under My balls first',noBalls:'No balls added yet.',deleteBall:'Delete ball',noSavedSessions:'No saved bowling sessions yet.',viewHint:'Tap to see ball, surface, boards and comments →',total:'total',average:'average',points:'points',ballLabel:'Ball:',surfaceLabel:'Surface:',startLabel:'Approach start:',targetLabel:'Target board:',commentLabel:'Comment:',notSpecified:'Not specified',noComment:'No comment',unknownHall:'Unknown center',unknownPattern:'Unknown oil profile',sessionSaved:'✓ Session saved',hallPlaceholder:'E.g. Mariehamn bowling center',lanesPlaceholder:'E.g. 3–4',scorePlaceholder:'Score',commentPlaceholder:'Optional comment'},
+ fi:{menuOpen:'Avaa valikko',settings:'Asetukset',myProfile:'Oma profiili',myBalls:'Omat pallot',savedData:'Tallennetut tiedot',back:'Takaisin',rightHand:'Oikeakätinen',leftHand:'Vasenkätinen',withThumb:'Peukalolla',withoutThumb:'Ilman peukaloa',profileHandDescription:'Valitse keilauskätesi. Valinta tallennetaan automaattisesti.',profileThumbDescription:'Valitse, keilaatko peukalolla vai ilman. Valinta tallennetaan automaattisesti.',oilProfile:'Öljyprofiili',bowlingPass:'Keilaussessio',selectedOilProfile:'Valittu öljyprofiili',hall:'Keilahalli',lanes:'Radat / ratapari',seriesCount:'Sarjojen määrä',startBowlingPass:'Aloita keilaussessio',addBall:'＋ Lisää pallo',manufacturer:'Valmistaja',chooseManufacturer:'Valitse valmistaja...',bowlingBall:'Keilapallo',savedSession:'Tallennettu sessio',patternLibrary:'Pattern Library',startNewPass:'Aloita uusi keilaussessio',seriesEntry:'Sarjan syöttö',oilProfilePerBoard:'Öljyprofiili (µL per keilauslauta)',ball:'Pallo',surface:'Pinta',startBoard:'Alkuasento (lauta 1–39)',targetBoard:'Kohdelauta (lauta 1–39)',result:'Tulos',comment:'Kommentti',saveSeries:'Tallenna sarja',series:'Sarjat',saveSession:'Tallenna sessio',newPass:'Uusi sessio',history:'Historia',savedDescription:'Kaikki valmiit keilaussessiot tallennetaan tälle laitteelle.',testVersionNote:'Testiversio · Kaikki tiedot tallennetaan paikallisesti laitteellesi.',myBallsDescription:'Lisää omistamasi pallot omaan pallokirjastoosi.',chooseBall:'Valitse keilapallo...',chooseMyBall:'Valitse omista palloista...',addBallFirst:'Lisää ensin pallo kohdassa Omat pallot',noBalls:'Palloja ei ole vielä lisätty.',deleteBall:'Poista pallo',noSavedSessions:'Tallennettuja keilaussessioita ei vielä ole.',viewHint:'Napauta nähdäksesi pallon, pinnan, laudat ja kommentit →',total:'yhteensä',average:'keskiarvo',points:'pistettä',ballLabel:'Pallo:',surfaceLabel:'Pinta:',startLabel:'Alkuasento:',targetLabel:'Kohdelauta:',commentLabel:'Kommentti:',notSpecified:'Ei ilmoitettu',noComment:'Ei kommenttia',unknownHall:'Tuntematon keilahalli',unknownPattern:'Tuntematon öljyprofiili',sessionSaved:'✓ Sessio tallennettu',hallPlaceholder:'Esim. Mariehamnin keilahalli',lanesPlaceholder:'Esim. 3–4',scorePlaceholder:'Pisteet',commentPlaceholder:'Vapaaehtoinen kommentti'}
+};
+let language=localStorage.getItem('bowlingLanguage')||'sv';
+function t(key){return (translations[language]&&translations[language][key])||translations.sv[key]||key;}
+function setLanguage(l){if(!translations[l])return;language=l;localStorage.setItem('bowlingLanguage',l);applyLanguage();renderPattern();renderOilChart();renderMyBallSelector();renderMyBalls();renderSavedData();if(by('savedSessionDetail')?.classList.contains('active')){const id=window.currentSavedSessionId;if(id)viewSavedSession(id);} }
+function applyLanguage(){document.documentElement.lang=language;document.title='Bowling Tracker';document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n);});document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.placeholder=t(el.dataset.i18nPlaceholder);});document.querySelectorAll('[data-i18n-aria]').forEach(el=>{el.setAttribute('aria-label',t(el.dataset.i18nAria));});document.querySelectorAll('.lang-picker button').forEach(b=>b.classList.toggle('active',b.dataset.lang===language));const sub=by('settingsMenuBtn');if(sub)sub.setAttribute('aria-expanded',String(by('settingsSubmenu')?.classList.contains('open')));}
+const patterns=[
+ {name:'Boardwalk (40 uL)',length:35,ratio:'2.04:1',vol:24.08},
+ {name:'Open Play Pattern',length:36,ratio:'8.13:1',vol:12.75},
+ {name:'2021 U.S. Open #1',length:36,ratio:'1.67:1',vol:26.44},
+ {name:'2019 World Bowling - Stockholm',length:36,ratio:'2.75:1',vol:26.885},
+ {name:'2026 SYC Florida - Short',length:37,ratio:'2.63:1',vol:27.045},
+ {name:'Taj Mahal',length:38,ratio:'3.29:1',vol:24.56},
+ {name:'2023 U.S. Open Pattern #3',length:39,ratio:'1.00:1',vol:27.25},
+ {name:'2025 Junior Gold - Qualifying #2 (U15B U18B)',length:39,ratio:'2.97:1',vol:27.2},
+ {name:'ABT #2',length:40,ratio:'9.55:1',vol:23.95},
+ {name:'Bourbon Street',length:40,ratio:'7.67:1',vol:23.45},
+ {name:'Sunset Strip',length:40,ratio:'3.33:1',vol:24.7},
+ {name:'Sphinx',length:40,ratio:'2.00:1',vol:25.2},
+ {name:'EA 41 2024B',length:41,ratio:'3.03:1',vol:27.8},
+ {name:'Turnpike',length:41,ratio:'2.25:1',vol:25.3},
+ {name:'Autobahn',length:42,ratio:'2.44:1',vol:25.85},
+ {name:"Dead Man's Curve V2",length:43,ratio:'3.83:1',vol:24.85},
+ {name:'PWBA ITRC Classic',length:43,ratio:'3.50:1',vol:22.75},
+ {name:'2021 SYC Boardwalk Bowl Medium',length:43,ratio:'4.60:1',vol:27.45},
+ {name:'2026 NCAA Bowling Championship',length:43,ratio:'2.37:1',vol:30.01},
+ {name:'2025 U.S. Open (Pattern #1)',length:44,ratio:'2.09:1',vol:30.43},
+ {name:'2025 European Youth Championships - Boys',length:44,ratio:'2.50:1',vol:29.1},
+ {name:'ABT #7',length:46,ratio:'1.80:1',vol:24.1},
+ {name:'EA46 2024',length:46,ratio:'3.25:1',vol:28.6},
+ {name:'2026 U.S. Open (Pattern 2)',length:47,ratio:'1.63:1',vol:29.22},
+ {name:'2024 SYC New York - Long',length:47,ratio:'2.90:1',vol:28.19},
+ {name:'2024 Storm San Marino Open',length:47,ratio:'2.40:1',vol:31.145},
+ {name:'2025 22nd Asian Youth Tenpin Bowling Championships - Long',length:47,ratio:'1.98:1',vol:31.305},
+ {name:'ABT #10',length:48,ratio:'1.89:1',vol:22.75},
+ {name:'Great Wall of China',length:48,ratio:'5.50:1',vol:23.46},
+ {name:'2024 U.S. Open - Pattern #3',length:49,ratio:'1.25:1',vol:31.68},
+ {name:'2025 Team USA Trials - Men Day 2',length:36,ratio:'2.91:1',vol:33.6},
+ {name:'2025 ISC Singles - Men (Fort Worth)',length:37,ratio:'2.19:1',vol:34.54},
+ {name:'2026 USBC Queens',length:38,ratio:'1.85:1',vol:30.85},
+ {name:'Middle Road (40 uL)',length:39,ratio:'4.14:1',vol:22.72},
+ {name:'Easy Street V2',length:39,ratio:'12.00:1',vol:22.4},
+ {name:'NBF 213925',length:39,ratio:'2.14:1',vol:24.5},
+ {name:'Plutonium',length:39,ratio:'2.26:1',vol:26.66},
+ {name:'Tungsten',length:39,ratio:'6.25:1',vol:25.6},
+ {name:'2024 PBA Johnson',length:40,ratio:'2.61:1',vol:31.6},
+ {name:'EA 41 2023 B',length:41,ratio:'2.90:1',vol:23.4},
+ {name:'2025 IBF World Seniors Championships',length:42,ratio:'2.61:1',vol:29.3},
+ {name:'2024 PBA Roth',length:42,ratio:'4.66:1',vol:31.65},
+ {name:'2026 PBA Roth',length:42,ratio:'4.07:1',vol:30.56},
+ {name:'2026 Kegel-ISBPA Midwest Collegiate Classic - Women',length:42,ratio:'3.03:1',vol:27.8},
+ {name:'2026 PBA Regional 43',length:43,ratio:'2.95:1',vol:32.3},
+ {name:'2026 PWBA Barbara Chrisman Classic Presented By Storm',length:43,ratio:'3.21:1',vol:28.85},
+ {name:'2026 Motiv AIK International',length:43,ratio:'3.03:1',vol:29.4},
+ {name:'2026 PWBA Northern Colorado Open - PTQ',length:44,ratio:'2.02:1',vol:27.85},
+ {name:'2025 USBC U22 Masters',length:44,ratio:'1.50:1',vol:32.57},
+ {name:'2026 USBC U22 Masters',length:44,ratio:'2.69:1',vol:33.12},
+ {name:'2026 Junior Gold - Pattern #3 (U16G U18G)',length:44,ratio:'3.15:1',vol:26.02},
+ {name:'2024 PBA Weber',length:45,ratio:'3.43:1',vol:28.6},
+ {name:'Route 66 V2',length:45,ratio:'6.25:1',vol:23.45},
+ {name:'2026 PBA Jr. Crawley',length:46,ratio:'3.94:1',vol:28.1},
+ {name:'EA 46 2026',length:46,ratio:'3.13:1',vol:27.55},
+ {name:'2026 SYC Florida - Long',length:47,ratio:'2.74:1',vol:28.95}
+];
+
+patterns.sort((a,b)=>a.length-b.length || a.name.localeCompare(b.name, "sv"));
+
+let hand=localStorage.getItem("bowlingHand")||"";
+let thumb=localStorage.getItem("bowlingThumb");
+let selected=patterns[0], pass=null, current=1, data=[], sessionSaved=false;
+
+const ballCatalog={
+  "Brunswick":[["Absolute Nirvana",2016],["Alert",2025],["Attitude",2022],["Aura",2012],["Beyond Infinity",2024],["Brute",2014],["Brute Strength",2015],["Combat",2025],["Combat Hybrid",2026],["Crown 78U",2025],["Crown Victory",2025],["Cutting Edge Hybrid",2018],["Defender",2022],["Defender Hybrid",2022],["Desert Sky RE",2020],["Edge Pearl",2017],["Edge Solid",2017],["Endeavor",2024],["Energize",2025],["Ethos",2023],["Ethos Hybrid",2024],["Ethos Solid",2025],["Fanatic",2016],["Fanatic BTU",2016],["Fanatic BTU Pearl",2017],["Fanatic SS",2017],["Fearless",2018],["Fire Quantum",2016],["Fortera Exile",2014],["Fortera Intrigue",2014],["Halo Pearl",2019],["Hero Solid",2020],["Hypnotize",2025],["Infinity",2023],["Intense Mindset",2024],["Karma",2011],["Kingpin",2017],["Kingpin Max",2018],["Kingpin Rule",2018],["Knock Out Bruiser",2023],["Knockout",2020],["Melee",2013],["Melee Jab",2014],["Melee Jab Blood Red",2020],["Melee Jab Carbon",2022],["Melee Jab Midnight Blue",2021],["Mesmerize",2024],["Method",2018],["Mindset",2023],["Nirvana",2015],["Prism Hybrid",2019],["Prism Solid",2019],["Prism Warp",2020],["Quantum Bias",2018],["Quantum Bias Pearl",2019],["Quantum Evo Hybrid",2022],["Quantum Evo Pearl",2021],["Quantum Evo Response",2023],["Quantum Evo Solid",2021],["Rhino",2016],["Stellar",2021],["Strategy",2026],["Tenacity",2017],["Tenacity Grit",2018],["The Uppercut",2019],["Twist",2018],["Ultimate Defender",2024],["Ultimate Nirvana",2016],["Vapor Zone Hybrid",2019],["Vapor Zone Solid",2019],["Vaporize",2024],["Vintage Danger Zone",2016],["Vintage Inferno",2017],["Vintage Phantom",2019],["Vintage Vapor Zone",2018]],
+  "DV8":[["Activ8",2021],["Ally Cat",2017],["Brutal Collision",2022],["Brutal Nightmare",2013],["Captiv8",2023],["Chill",2023],["Chill Pearl",2024],["Collision",2022],["Creed",2017],["Creed Rebellion",2018],["Creed Revelation",2018],["Damn Good Verge",2021],["Damn Good Verge Pearl",2022],["Dark Side",2025],["Dark Side Curse",2026],["Decree",2020],["Decree Pearl",2020],["Deviant",2015],["Heckler Hybrid",2025],["Hell Raiser Blaze",2012],["Hell Raiser Revenge",2013],["Hitman",2016],["Pitbull",2017],["Pitbull Bite",2018],["Pitbull Growl",2018],["Tactic",2016],["Tactic Control",2017],["Troublemaker",2023],["Turmoil",2015],["Turmoil Solid",2016],["Vandal",2015],["Vandal Smash",2016],["Vandal Strike",2017],["Verge Hybrid",2023],["Verge Orange Solid",2022],["Verge Pearl",2020],["Verge Solid",2019],["Violent Collision",2023],["Viz-A-Ball",2012],["Warrant",2019],["Warrant Solid",2020],["Wicked Collision",2024]],
+  "Ebonite":[["Adrenaline Overload",2015],["Adrenaline Shot",2015],["Aero",2020],["Aero Dynamix",2020],["Affinity",2017],["Allure",2020],["Allure Solid",2020],["Angular One 2017",2017],["Angular ONe 2017",2017],["Big One 2017",2017],["Big Time Special Edition",2023],["Champion",2013],["Choice",2018],["Choice Pearl",2019],["Choice Solid",2019],["Code of Honor",2015],["Crusher",2024],["Crusher Hybrid",2025],["Cyclone",2011],["Cyclone GB",2015],["Destiny Hybrid",2018],["Destiny Pearl",2018],["Destiny Solid",2018],["Elevate",2011],["Emerge",2023],["Emerge Hybrid",2024],["Endure",2012],["Energy Source",2014],["Entity",2025],["Entity Pearl",2025],["Envision",2022],["Envision Pearl",2023],["Exceed",2013],["Fireball",2023],["Fireball Purple/Gold",2024],["Futura",2019],["Game Breaker",2011],["Game Breaker 2",2014],["Game Breaker 2 Gold",2015],["Game Breaker 2 MVP",2015],["Game Breaker 2 Phenom",2016],["Game Breaker 2 Phenom Pearl",2016],["Game Breaker 4",2021],["Game Breaker 4 Hybrid",2023],["Game Breaker 5",2024],["Game Breaker 5 Hybrid",2026],["Game Breaker 5 Pearl",2025],["Game Breaker Assym",2021],["GB3",2018],["GB3 Black/Blue",2019],["GB3 Pearl",2018],["GB4",2021],["GB4",2022],["Impact",2018],["In2ition",2019],["Innovate",2012],["Legacy",2013],["Matrix 2017",2017],["Maverick",2016],["Maverick Pearl",2017],["Omni",2020],["Omni Hybrid",2020],["Persevere",2012],["Pivot",2013],["Pivot Point",2014],["Polaris",2021],["Polaris Hybrid",2022],["Pursuit",2012],["Pursuit Desire",2013],["Pursuit Premium",2014],["Pursuit Special",2014],["Pursuit Unlimited",2012],["Pursuit Unlimited-S",2012],["Real One",2017],["Real Time",2024],["Salute",2014],["Signals",2011],["Source",2013],["Spartan",2026],["The One",2011],["The One 2017",2017],["The One Encore",2023],["The One Ovation",2025],["The One Pearl",2011],["The One Remix",2022],["The One Reverb",2024],["Turbo X",2025],["Turbo X NU",2026],["Turbo X Pearl",2026],["Verdict",2017],["Verdict Pearl",2018],["Vital Energy",2011],["Warning Sign",2011],["Warrior",2015],["Warrior Elite",2015],["Warrior Supreme",2016]],
+  "Global":[
+    ["900 Global Black/Gold Spare",2012],["900 Global Spare",2015],
+    ["Absolute Truth",2017],["After Burner Black-Purple",2020],["After Burner Blue-Black",2020],
+    ["After Dark",2018],["After Dark Hybrid",2019],["After Dark Pearl",2018],
+    ["All Day",2015],["All In",2015],["All Night",2015],["Altered Reality",2021],
+    ["Aspect",2020],["Badger",2018],["Badger Infused",2019],["Badger Pink Fury",2020],
+    ["Bank Roll",2011],["Black Eagle",2012],["Black Ops",2015],
+    ["Boo-Yah Pro",2020],["Boost",2015],["Boost Black Solid",2016],["Boost Bubblegum",2017],["Boost Green/Black",2017],
+    ["Break Down",2015],["Bullet Train",2015],["Burner Pearl",2021],["Burner Solid",2021],
+    ["Chemical X",2015],["Clear Poly",2019],["Compass",2017],["Continuum",2018],["Cove",2025],["Covert Ops",2017],
+    ["Dark Matter",2015],["Desert Hook",2016],["Desert Ops",2016],["Dirty Look",2015],
+    ["Dream",2015],["Dream Big",2015],["Dream Big Pearl",2015],["Dream On",2015],["Drift",2016],
+    ["Eagle Pearl",2015],["Eagle USA",2020],["Eeon",2018],["Ember",2025],["Eon",2018],
+    ["Equilibrium",2020],["Eternity",2023],["Eternity PI",2023],["Flux",2019],["Flux Pearl",2020],
+    ["Freight Train",2012],["Hard Drive",2015],["Harsh Reality",2024],["Harsh Reality Pearl",2024],
+    ["Honey Badger",2017],["Honey Badger Claw",2018],["Honey Badger Extreme Pearl",2019],["Honey Badger Extreme Solid",2020],["Honey Badger Intensity",2021],["Honey Badger Revival",2020],["Honey Badger Teal",2019],
+    ["Hook",2011],["Hook",2012],["Hustle Camo",2021],["Hustle Wine",2021],
+    ["Inception",2016],["Inception DCT",2017],["Inception DCT Pearl",2017],["Inception Pearl",2016],["Inception Redux",2017],
+    ["Infrared",2016],["Jewel",2011],["Jewel",2012],["Money Badger",2019],["Money Badger Tour",2019],
+    ["Moxie",2015],["Onyx",2024],["Ordinance Pearl",2019],["Ordinance Solid",2019],["Ordnance C4",2020],
+    ["Origin",2024],["Origin EX",2025],["POW",2015],["Profit",2010],["Protocol",2015],
+    ["Reality",2021],["Reality Check",2022],["Respect",2015],["Respect (2018)",2018],["Respect Pearl",2015],["Respect Solid",2015],["Rip/It",2015],
+    ["Space Time Continuum",2018],["Special Ops",2016],["Sublime",2023],["Sublime Focus",2024],["Sure Thing",2012],["Tactical Ops",2018],
+    ["The Eagle",2011],["The Look",2012],["The Nuts",2011],["The Nuts Pearl",2011],["Train",2012],
+    ["Truth",2016],["Truth Pearl",2016],["Truth Tour",2018],["Vengeance",2026],["Vengeance Returns",2026],
+    ["Viking",2025],["Viking Conquest",2026],["Vixen",2015],["Volatility",2020],["Volatility Torque",2020],
+    ["Volt",2019],["Volt Solid",2020],["War Eagle",2016],["White Hot Badger",2018],["Wisdom",2011],["Wisdom Red/Silver Pearl",2012],
+    ["Wolverine",2021],["Wolverine Dark Moss",2022],["Wolverine Mutant",2021],["Wolverine Steel",2022],["Wolverine Strike",2022],
+    ["X",2016],["X²",2017],["XPonent",2023],["Xponent Pearl",2024],["Yellow Poly",2021],
+    ["Zen",2020],["Zen 25",2024],["Zen Asura",2022],["Zen Gold Label",2023],["Zen Karma",2021],["Zen Master",2021],["Zen Mudra",2022],["Zen Onyx",2022],["Zen Soul",2022],["Zen Spirit",2022],["Zen U",2022]
+  ],
+  "Hammer":[["3-D Offset",2022],["3-D Offset Attack",2022],["3D Offset Assault",2025],["Absolut Curve",2013],["Absolut Flip",2014],["Absolute Hook",2013],["Amp",2013],["Amp Up",2013],["Anger",2024],["Anger Solid",2025],["Arctic Vibe",2024],["Black Widow 2.0",2017],["Black Widow 2.0 Hybrid",2018],["Black Widow Assassin",2014],["Black Widow Bite",2015],["Black Widow Ghost",2015],["Black Widow Legend",2016],["Black Widow Nasty",2017],["Black Widow Pink",2011],["Black Widow Urethane",2014],["Blue Hammer",2013],["Crush",2012],["Fuze",2014],["Gauntlet",2015],["Gauntlet Fury",2016],["Hater",2017],["No Mercy",2006],["No Mercy Absolute",2008],["No Mercy Attack",2009],["No Mercy Attack Red/Black",2009],["No Mercy Attack Red/Magenta/Black",2010],["No Mercy Beat",2007],["No Mercy Beat'n",2007],["No Mercy Black/Blue/White",2019],["No Mercy Black/Green",2017],["No Mercy Black/Red/Purple",2017],["No Mercy Purple/Black/Smoke",2019],["No Mercy Solid",2020],["No Mercy Violent",2007],["NU 2.0",2025],["NU Blue Hammer",2023],["Obsession",2021],["Obsession Tour",2021],["Obsession Tour Pearl",2021],["Ocean Vibe",2022],["Phobia",2016],["Phobia Solid",2017],["Pure Envy",2024],["Purple Hammer",2013],["Purple Hammer (MK)",2015],["Purple Hammer (MK) Orange Pin",2015],["Purple Pearl Urethane Hammer",2021],["Purple Pearl Urethane Hammer (Except Serial #'s Starting with a 6 or 7)",2018],["Purple Pearl Urethane Hammer (Purple Pin)",2022],["Purple Reactive Solid",2022],["Purple Solid Urethane Hammer",2021],["Ratchet",2012],["Raw Hammer Blue/Silver/White",2021],["Raw Hammer Orange/Black",2021],["Statement",2016],["Statement Hybrid",2017],["Statement Pearl",2018],["Vibe Cobalt",2012],["Vibe Grape",2011],["Vibe Jet Black",2013],["Vibe Xtra Rare (Teal Blue)",2013],["Vibe Deep Purple",2014],["Vibe Envy XR",2014],["Vibe Infrared XR",2014],["Vibe Purple/Gold",2014],["Vibe Candy Cane XR",2014],["Vibe Ice XR",2015],["Vibe Pro Model Purple/Violet",2015],["Vibe Pro Model Red",2015],["Vibe Blue/Purple/Red",2016],["Vibe Blue (2017)",2017],["Vibe Cherry (2017)",2017],["Vibe Peppermint",2018],["Vibe Orange",2019],["Vibe Red Pearl",2022],["Radioactive Vibe",2023],["Arctic Vibe",2024],["Web",2015],["Web Pearl",2017],["Web Tour",2016],["Zero Mercy Hybrid",2026],["Zero Mercy Pearl",2025],["Zero Mercy Solid",2025],["Zero Mercy Tour",2026]],
+  "Motiv":[["2Cruel",2012],["Alpha Jackal",2019],["Apex Jackal",2025],["Ascend",2025],["Ascent Apex",2014],["Ascent Pearl",2012],["Ascent Solid",2012],["Aspire",2025],["Black Venom",2023],["Blue Coral Venom",2022],["Blue Tank",2022],["Carbide Tank",2022],["Chronic Paranoia",2016],["Covert Revolt",2014],["Covert VIP ExJ",2026],["Crimson Jackal",2023],["Desert Tank",2020],["Evoke",2024],["Evoke Hysteria",2025],["Evoke Mayhem",2026],["Fatal Venom",2020],["Forge",2018],["Forge Ember",2022],["Forge Fire",2020],["Forge Flare",2020],["Forge Fuel",2026],["Forza",2014],["Forza GT",2016],["Forza Redline",2015],["Forza SS",2017],["Freestyle",2016],["Freestyle Rush",2017],["Golden Jackal",2019],["Graffiti Tag",2015],["Hydra",2018],["Hyper Venom",2024],["Iron Forge",2021],["Jackal Ambush",2022],["Jackal EXJ Hybrid",2025],["Jackal Flash",2020],["Jackal Ghost",2016],["Jackal Ghost V2",2026],["Jackal Legacy",2021],["Jackal Onyx",2024],["Jackal Rising",2017],["Lethal Venom",2025],["Max Thrill Hybrid",2025],["Max Thrill Pearl",2024],["Max Thrill Solid",2024],["Mythic Jackal",2022],["Nebula",2025],["Raptor",2011],["Raptor Attack",2012],["Raptor Fury",2023],["Raptor Reign",2025],["Raptor Rush",2024],["Raptor Talon",2012],["Revolt Havoc",2015],["Revolt Uprising",2022],["Revolt Vengeance",2014],["Ripcord",2019],["Ripcord Flight",2020],["Ripcord Launch",2022],["Ripcord Velocity",2021],["Rogue Assassin",2019],["Rogue Blade",2018],["Sigma Hybrid",2012],["Sigma Sting",2013],["Sigma Tour",2011],["Sigma Tour Pearl",2026],["Sky Raptor",2022],["Steel Forge",2025],["Subzero Forge",2024],["Supra Clutch",2025],["Supra Sport",2026],["Thrill",2019],["Top Thrill Hybrid",2023],["Top Thrill Solid",2023],["Trident",2016],["Trident Abyss",2018],["Trident Horizon",2021],["Trident Nemesis",2020],["Trident Odyssey",2021],["Trident Quest",2017],["Venom Cobra",2016],["Venom Shock",2014],["Venom Shock Pearl",2018],["Venom Strike",2012],["Venom Toxin",2013],["Villain Scorn",2018],["Villian",2018],["VIP Affliction",2021],["VIP ExJ",2020],["VIP ExJ Sigma",2023]],
+  "Radical":[["Astro Nuts",2019],["Beyond Ridiculous",2017],["Beyond Ridiculous Pearl",2018],["Big Foot",2022],["Big Foot Hybrid",2022],["Bonus",2020],["Bonus Pearl",2020],["Breakaway",2024],["Cash",2017],["Conspiracy",2018],["Conspiracy Hybrid",2019],["Conspiracy Pearl",2019],["Conspiracy Scheme",2022],["Conspiracy Theory",2019],["Counter Attack Pearl",2019],["Counter Attack Solid",2019],["Crypto",2022],["Crypto Boom",2023],["Cyclops",2017],["Cyclops Pearl",2017],["Deadly Rattler",2023],["Evil Eye",2025],["Intel Recon",2016],["Intel Tour",2026],["No Doubt",2024],["No Doubt Solid",2025],["Primo",2015],["Primo Solid",2015],["Quick Fix",2017],["Rack Attack Pearl",2015],["Rack Attack Solid",2015],["Radical Conspiracy",2024],["Radical Spare Ball",2014],["Rattler",2022],["Rattler Big Bite",2024],["Rattler NU",2024],["Rave",2015],["Rave On",2016],["Reax",2013],["Reax Gusto",2014],["Reax Pearl",2013],["Reax Version 2",2013],["Reax Version 2 Pearl",2014],["Results Pearl",2020],["Results Plus",2020],["Results Solid",2020],["Revenge Pearl",2026],["Revenge Solid",2026],["Ridiculous",2015]],
+  "Roto Grip":[["All Out Show Off",2017],["Apocalypse",2004],["Asylum",2013],["Attention Star",2024],["Attention Star S2",2024],["Bandit",2011],["Battle",2020],["Berserk",2012],["Bullseye",2016],["Clone",2023],["Cosmos",2026],["Critical",2015],["Critical Theory",2011],["Defiant",2014],["Hustle",2014],["Hustle HSB",2014],["Hustle Ink",2015],["Hustle P.O.",2016],["Hustle PBR",2016],["Hustle RIP",2017],["Hustle S/A",2017],["Hyped",2019],["Hyper Cell",2014],["Hyper Cell Fused",2015],["Idol",2017],["Idol Helios",2018],["Idol Pearl",2018],["Idol Pro",2019],["IDOL Synergy",2020],["Jester",2024],["Loco Pearl",2015],["Loco Solid Reactive",2015],["Magic Gem",2023],["Menace",2015],["MVP",2019],["MVP Attitude",2020],["MVP Pearl",2019],["No Rules",2016],["No Rules Exist",2017],["No Rules Pearl",2016],["Rapture",2014],["Rapture Blast",2016],["Rapture Hybrid",2015],["Rubicon",2019],["Rubicon UC2",2020],["Rubicon UC3",2022],["Shout",2013],["Tread",2012],["UFO",2016],["UFO Alert",2017],["Wild Streak Tour/U",2020],["Wreck Em",2016]],
+  "Storm":[["!Q Tour 78/U",2023],["!Q Tour A.I.",2025],["!Q Tour Red",2018],["!Q Tour U",2021],["Absolute",2022],["Absolute Power",2023],["All-Road",2019],["Alpha Crux",2016],["Alpha Crux",2026],["AstroPhysiX",2019],["Axiom",2020],["Axiom Pearl",2020],["Bionic",2026],["Code Black",2017],["Code X",2017],["Crux",2015],["Crux Prime",2017],["Dark Code",2019],["Drive",2016],["Electrify B-S-Y",2023],["Electrify G-O",2022],["Electrify Hybrid",2020],["Electrify Pearl",2020],["Electrify Solid",2021],["Equinox",2025],["Equinox Hybrid",2026],["Equinox Solid",2025],["Fast Pitch",2020],["Fate",2022],["Fever Pitch",2016],["Fire PhysiX",2022],["Hy-Road",2011],["Hy-Road Hybrid",2017],["Hy-Road Pearl",2011],["Hy-Road X",2014],["Hy-Road X Factor",2015],["Ion Max",2026],["Ion Max Pearl",2026],["Ion Pro",2024],["IQ",2012],["IQ Tour",2012],["IQ Tour Emerald",2016],["IQ Tour Nano",2015],["IQ Tour Sapphire",2017],["Lock",2015],["Mix",2013],["Natural",2009],["Natural Pearl",2010],["Next Factor",2025],["Nova",2016],["Phaze",2015],["Phaze 4",2021],["Phaze II",2016],["Phaze II Pearl",2025],["Phaze III",2019],["Phaze IV",2020],["Pitch Black",2014],["Pitch Black (Blue Pin)",2026],["Pitch Black 78-U",2026],["Pitch Blue",2015],["Pitch Out",2016],["Pitch Purple",2020],["Pitch Red",2014],["Pitch Sky",2020],["Pro-Motion",2017],["Road Warrior",2024],["Rocket",2015],["Rocket A.I.",2026],["Rocket Ship",2016],["Second Dimension",2009],["Sky Rocket",2015],["Snap Lock",2016],["Son!Q",2018],["Super Natural",2013],["Sure Lock",2018],["Sword U",2016],["Trend",2019],["Trend 2",2020],["Zenith",2017],["Zenith Hybrid",2018]]
+};
+
+// Keep manufacturer and ball lists alphabetically sorted without changing the stored catalog data.
+Object.keys(ballCatalog).forEach(m => ballCatalog[m].sort((a,b) => a[0].localeCompare(b[0], 'sv')));
+
+function initBallCatalog(manufacturer){
+ const el=by("ballCatalogSelect"); if(!el)return;
+ const balls=ballCatalog[manufacturer]||[];
+ el.innerHTML='<option value="">'+t('chooseBall')+'</option>'+balls.slice().sort((a,b)=>a[0].localeCompare(b[0],"sv")).map(([name,year])=>`<option value="${manufacturer} ${name}">${name} (${year})</option>`).join("");
+ by("ballModelWrap").style.display=balls.length?"block":"none";
+ el.value="";
+}
+function renderMyBalls(){
+ const list=JSON.parse(localStorage.getItem("myBowlingBalls")||"[]");
+ by("myBallList").innerHTML=list.length?list.map((b,i)=>`<div style="padding:10px 0;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px"><span>${b}</span><button type="button" class="delete-ball" data-index="${i}" style="width:22px;height:22px;min-width:22px;padding:0;border-radius:50%;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center" aria-label="${t('deleteBall')}" title="${t('deleteBall')}">×</button></div>`).join(""):'<div style="color:var(--muted)">'+t('noBalls')+'</div>';
+}
+function openMyBalls(){
+ closeMenu&&closeMenu();
+ renderMyBalls(); go("myBalls");
+}
+function addBall(){
+ const el=by("ballCatalogSelect"); if(!el||!el.value)return;
+ const list=JSON.parse(localStorage.getItem("myBowlingBalls")||"[]");
+ if(!list.includes(el.value)) list.push(el.value);
+ localStorage.setItem("myBowlingBalls",JSON.stringify(list));
+ el.value=""; renderMyBalls();
+}
+
+
+function by(id){return document.getElementById(id)}
+function go(id){
+ document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));
+ by(id).classList.add("active");
+ by("navPatterns").classList.toggle("active",id==="patterns");
+ window.scrollTo(0,0);
+}
+function populate(selectId){
+ const el=by(selectId); if(!el)return;
+ el.innerHTML=patterns.map(p=>`<option value="${p.name}">${p.name}</option>`).join("");
+ el.value=selected.name;
+}
+function setHand(h){
+ hand=h; localStorage.setItem("bowlingHand",h); syncHand();
+}
+function syncHand(){
+ [["profileRH","Höger"],["profileLH","Vänster"]].forEach(([id,h])=>{
+  const e=by(id); if(e)e.classList.toggle("active",hand===h);
+ });
+ syncThumb();
+}
+function setThumb(hasThumb){
+ thumb=hasThumb; localStorage.setItem("bowlingThumb",String(hasThumb)); syncThumb();
+}
+function syncThumb(){
+ const yes=by("profileThumb"), no=by("profileNoThumb");
+ if(yes)yes.classList.toggle("active",thumb==="true");
+ if(no)no.classList.toggle("active",thumb==="false");
+}
+function selectPattern(){
+ selected=patterns.find(p=>p.name===by("patternSelect").value)||patterns[0];
+ renderPattern(); renderOilChart();
+}
+
+function renderPattern(){
+ by("patternName").textContent=selected.name;
+ by("patternMeta").textContent=`${selected.length} ft · ${selected.ratio} · ${selected.vol.toFixed(1)} ml ${language==='fi'?'öljyä':language==='en'?'total oil':'total olja'}`;
+ by("patternOil").innerHTML=oilSvg(700,72);
+}
+function oilSvg(w,h){
+ const left=6,bottom=12,plotH=h-bottom;
+ const vals=Array.from({length:39},(_,i)=>{
+   const center=Math.exp(-Math.pow((i-19)/11.5,2));
+   return 4+48*center;
+ });
+ const bw=(w-left-5)/39;
+ const bars=vals.map((v,i)=>`<rect x="${left+i*bw}" y="${plotH-v/55*(plotH-8)}" width="${bw+1}" height="${v/55*(plotH-8)}" fill="#267bc8"/>`).join("");
+ return `<svg class="oil-svg" viewBox="0 0 ${w} ${h}"><line x1="${left}" y1="${plotH}" x2="${w-5}" y2="${plotH}" stroke="#708198"/>${bars}<text x="6" y="${h-2}" fill="#8290a8" font-size="8">1</text><text x="${w/2-4}" y="${h-2}" fill="#8290a8" font-size="8">20</text><text x="${w-18}" y="${h-2}" fill="#8290a8" font-size="8">39</text></svg>`;
+}
+function renderOilChart(){by("oilChart").innerHTML=oilSvg(600,72)}
+function openSetup(){
+  const display=by("setupPatternDisplay");
+  if(display) display.textContent=selected.name;
+  go("sessionSetup");
+}
+function startPass(){
+ const seriesEl=by("setupSeries");
+ const hallEl=by("setupHall");
+ const lanesEl=by("setupLanes");
+ const n=Math.max(1, Number(seriesEl && seriesEl.value) || 4);
+ pass={
+  pattern:selected.name,
+  hall:((hallEl && hallEl.value) || "").trim() || "Okänd hall",
+  lanes:((lanesEl && lanesEl.value) || "").trim() || "Ej angivet",
+  count:n
+ };
+ data=Array.from({length:n},()=>null);
+ current=1;
+ syncHand();
+ renderTabs();
+ loadSeries(1);
+ go("series");
+}
+function renderTabs(){
+ by("seriesTabs").innerHTML=data.map((_,i)=>`<button type="button" class="${i+1===current?"active":""}" onclick="loadSeries(${i+1})">${language==='fi'?'Sarja':language==='en'?'Game':'Serie'} ${i+1}</button>`).join("");
+}
+function boardOptions(){
+  return Array.from({length:39},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join("");
+}
+function initBoardSelectors(){
+  ["startBoard","targetBoard"].forEach(id=>{
+    const el=by(id);
+    if(el && !el.options.length) el.innerHTML=boardOptions();
+  });
+}
+function renderMyBallSelector(selectedValue=""){
+ const el=by("ball"); if(!el)return;
+ const list=JSON.parse(localStorage.getItem("myBowlingBalls")||"[]");
+ el.innerHTML='<option value="">'+(list.length?t('chooseMyBall'):t('addBallFirst'))+'</option>'+list.slice().sort((a,b)=>a.localeCompare(b,"sv")).map(b=>`<option value="${b.replace(/\"/g,'&quot;')}">${b}</option>`).join("");
+ el.value=list.includes(selectedValue)?selectedValue:"";
+}
+function loadSeries(n=current){
+ current=n; renderTabs();
+ const d=data[current-1]||{};
+ renderMyBallSelector(d.ball||"");
+ by("surface").value=d.surface||"2000 grit";
+ initBoardSelectors();
+ by("startBoard").value=d.startBoard??15;
+ by("targetBoard").value=d.targetBoard??7;
+ by("score").value=d.score??""; by("note").value=d.note||"";
+ renderOilChart();
+}
+
+
+function saveSeries(){
+ data[current-1]={ball:by("ball").value,surface:by("surface").value,startBoard:Number(by("startBoard").value),targetBoard:Number(by("targetBoard").value),score:Number(by("score").value)||0,note:by("note").value};
+ if(current<data.length){current++;loadSeries();}else showSummary();
+}
+function saveCompletedSession(){
+ if(sessionSaved || !pass || !data.length) return;
+ const sessions=JSON.parse(localStorage.getItem("bowlingSessions")||"[]");
+ sessions.push({
+  id:Date.now(),
+  date:new Date().toISOString(),
+  pattern:pass.pattern||selected.name,
+  hall:pass.hall||t('unknownHall'),
+  lanes:pass.lanes||t('notSpecified'),
+  hand:hand||"",
+  thumb:thumb==="true",
+  series:data.map(d=>d?{...d}:null)
+ });
+ localStorage.setItem("bowlingSessions",JSON.stringify(sessions));
+ sessionSaved=true;
+ const btn=by("saveSessionBtn");
+ if(btn){btn.textContent=t('sessionSaved');btn.disabled=true;}
+ renderSavedData();
+ setTimeout(()=>go("savedData"),250);
+}
+function deleteSavedSession(id){
+  const sessions=JSON.parse(localStorage.getItem("bowlingSessions")||"[]");
+  const updated=sessions.filter(s=>s.id!==id);
+  localStorage.setItem("bowlingSessions",JSON.stringify(updated));
+  renderSavedData();
+}
+
+function escapeHtml(value){
+ return String(value??"").replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[ch]));
+}
+function viewSavedSession(id){
+ window.currentSavedSessionId=id;
+ const sessions=JSON.parse(localStorage.getItem("bowlingSessions")||"[]");
+ const s=sessions.find(x=>x.id===id);
+ if(!s)return;
+ const savedPattern=patterns.find(p=>p.name===(s.pattern||""));
+ const patternLength=savedPattern?.length;
+ const patternLabel=(s.pattern||t('unknownPattern'))+(patternLength?', '+patternLength+"'":'');
+ const d=new Date(s.date);
+ const date=isNaN(d)?"":d.toLocaleString(language==='fi'?'fi-FI':language==='en'?'en-GB':'sv-SE',{dateStyle:'short',timeStyle:'short'});
+ const scores=(s.series||[]).map(x=>Number(x?.score)||0);
+ const total=scores.reduce((a,b)=>a+b,0);
+ const avg=scores.length?(total/scores.length).toFixed(1):"0.0";
+ by("savedDetailTitle").textContent=patternLabel;
+ by("savedDetailMeta").textContent=`${date} · ${s.hall||t('unknownHall')} · ${s.lanes||t('notSpecified')}`;
+ const rows=(s.series||[]).map((d,i)=>`<div style="padding:12px 0;border-top:1px solid var(--border)">
+   <div style="font-weight:800;font-size:16px">${language==='fi'?'Sarja':language==='en'?'Game':'Serie'} ${i+1} · ${Number(d?.score)||0} ${t('points')}</div>
+   <div style="margin-top:8px"><b>${t('ballLabel')}</b> ${escapeHtml(d?.ball||t('notSpecified'))}</div>
+   <div style="margin-top:4px"><b>${t('surfaceLabel')}</b> ${escapeHtml(d?.surface||t('notSpecified'))}</div>
+   <div style="margin-top:4px"><b>${t('startLabel')}</b> ${d?.startBoard?`${language==='fi'?'lauta':language==='en'?'board':'ribba'} ${escapeHtml(d.startBoard)}`:t('notSpecified')}</div>
+   <div style="margin-top:4px"><b>${t('targetLabel')}</b> ${d?.targetBoard?`${language==='fi'?'lauta':language==='en'?'board':'ribba'} ${escapeHtml(d.targetBoard)}`:t('notSpecified')}</div>
+   <div style="margin-top:8px"><b>${t('commentLabel')}</b><div style="color:var(--muted);white-space:pre-wrap;margin-top:3px">${escapeHtml(d?.note||t('noComment'))}</div></div>
+ </div>`).join("");
+ by("savedDetailRows").innerHTML=`<div style="padding:10px 0;font-weight:800">${total} ${t('total')} · ${avg} ${t('average')} · ${scores.length} ${language==='fi'?'sarjaa':language==='en'?'games':'serier'}</div>${rows}`;
+ go("savedSessionDetail");
+}
+function deleteSavedSession(id){
+  const sessions=JSON.parse(localStorage.getItem("bowlingSessions")||"[]");
+  const updated=sessions.filter(s=>s.id!==id);
+  localStorage.setItem("bowlingSessions",JSON.stringify(updated));
+  renderSavedData();
+}
+
+function renderSavedData(){
+ const el=by("savedSessionsList"); if(!el)return;
+ const sessions=JSON.parse(localStorage.getItem("bowlingSessions")||"[]").slice().reverse();
+ if(!sessions.length){
+  el.innerHTML='<div style="color:var(--muted)">'+t('noSavedSessions')+'</div>';
+  return;
+ }
+ el.innerHTML=sessions.map((s)=>{
+  const scores=(s.series||[]).map(d=>Number(d?.score)||0);
+  const total=scores.reduce((a,b)=>a+b,0);
+  const avg=scores.length?(total/scores.length).toFixed(1):"0.0";
+  const d=new Date(s.date);
+  const date=isNaN(d)?"":d.toLocaleString(language==='fi'?'fi-FI':language==='en'?'en-GB':'sv-SE',{dateStyle:'short',timeStyle:'short'});
+  const savedPattern=patterns.find(p=>p.name===(s.pattern||""));
+  const patternLength=savedPattern?.length;
+  const patternLabel=(s.pattern||t('unknownPattern'))+(patternLength?', '+patternLength+"'":'');
+  return `<div role="button" tabindex="0" onclick="viewSavedSession(${s.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();viewSavedSession(${s.id})}" style="padding:13px 0;border-top:1px solid var(--border);cursor:pointer">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div style="font-weight:800">${escapeHtml(patternLabel)}</div><button type="button" onclick="event.stopPropagation();deleteSavedSession(${s.id})" style="width:28px;height:28px;min-width:28px;padding:0;border:1px solid #6b3340;border-radius:50%;background:#241520;color:#ff8b9d;font-size:16px;line-height:1" aria-label="${language==='fi'?'Poista sessio':language==='en'?'Delete session':'Radera session'}" title="${language==='fi'?'Poista sessio':language==='en'?'Delete session':'Radera session'}">×</button></div>
+    <div style="color:var(--muted);font-size:12px;margin-top:3px">${escapeHtml(date)} · ${escapeHtml(s.hall||t('unknownHall'))} · ${escapeHtml(s.lanes||t('notSpecified'))}</div>
+    <div style="font-size:13px;margin-top:7px">${(s.series||[]).map((d,i)=>`${language==='fi'?'Sarja':language==='en'?'Game':'Serie'} ${i+1}: ${Number(d?.score)||0}`).join(" · ")}</div>
+    <div style="color:var(--muted);font-size:12px;margin-top:4px">${total} ${t('total')} · ${avg} ${t('average')}</div>
+    <div style="color:var(--muted);font-size:11px;margin-top:6px">${t('viewHint')}</div>
+  </div>`;
+ }).join("");
+}
+function showSummary(){
+ const scores=data.map(d=>d?.score||0), total=scores.reduce((a,b)=>a+b,0), avg=(total/scores.length).toFixed(1);
+ by("sumTitle").textContent=selected.name;
+ by("sumMeta").textContent=`${pass.hall} · ${pass.lanes} · ${hand==='Höger'?(language==='fi'?'oikeakätinen':language==='en'?'right-handed':'Högerhänt'):hand==='Vänster'?(language==='fi'?'vasenkätinen':language==='en'?'left-handed':'Vänsterhänt'):''}`;
+ by("sumScore").textContent=`${total} ${t('total')} · ${avg} ${t('average')}`;
+ by("sumRows").innerHTML=data.map((d,i)=>`<div style="padding:9px 0;border-top:1px solid var(--border)"><b>${language==='fi'?'Sarja':language==='en'?'Game':'Serie'} ${i+1}: ${d?.score||0}</b><div style="color:var(--muted);font-size:12px">${d?.ball||""} · ${d?.surface||""}</div></div>`).join("");
+ go("summary");
+}
+function init(){
+ populate("patternSelect");
+ initBoardSelectors();
+ syncHand();
+ go("patterns");
+ renderPattern();renderOilChart();
+}
+init();
+applyLanguage();
+const startPassBtn=by("startPassBtn");
+if(startPassBtn) startPassBtn.addEventListener("click", startPass);
+const saveSessionBtn=by("saveSessionBtn");
+if(saveSessionBtn) saveSessionBtn.addEventListener("click", saveCompletedSession);
+</script>
+
+<script>
+(function(){
+  const btn=document.getElementById('menuBtn');
+  const panel=document.getElementById('menuPanel');
+  window.closeMenu=function(){panel.classList.remove('open');btn.setAttribute('aria-expanded','false');};
+  btn.addEventListener('click',function(e){e.stopPropagation();const open=panel.classList.toggle('open');btn.setAttribute('aria-expanded',String(open));});
+  const settingsBtn=document.getElementById('settingsMenuBtn');
+  const settingsSubmenu=document.getElementById('settingsSubmenu');
+  settingsBtn.addEventListener('click',function(e){e.stopPropagation();const open=settingsSubmenu.classList.toggle('open');settingsBtn.setAttribute('aria-expanded',String(open));});
+  document.getElementById('profileMenuBtn').addEventListener('click',function(e){e.stopPropagation();closeMenu();syncHand();go('profile');});
+  document.getElementById('myBallsMenuBtn').addEventListener('click',function(e){e.stopPropagation();openMyBalls();});
+  document.getElementById('savedDataMenuBtn').addEventListener('click',function(e){e.stopPropagation();closeMenu();renderSavedData();go('savedData');});
+  document.getElementById('addBallBtn').addEventListener('click',function(){document.getElementById('addBallForm').style.display='block';});
+  document.getElementById('ballManufacturerSelect').addEventListener('change',function(){initBallCatalog(this.value);});
+  document.getElementById('ballCatalogSelect').addEventListener('change',addBall);
+  document.getElementById('myBallList').addEventListener('click',function(e){
+    const del=e.target.closest('.delete-ball');
+    if(!del)return;
+    const index=Number(del.dataset.index);
+    const list=JSON.parse(localStorage.getItem('myBowlingBalls')||'[]');
+    if(index>=0 && index<list.length){
+      list.splice(index,1);
+      localStorage.setItem('myBowlingBalls',JSON.stringify(list));
+      renderMyBalls();
+    }
+  });
+  document.addEventListener('click',function(e){if(!panel.contains(e.target)&&e.target!==btn) closeMenu();});
+})();
+</script>
+</body>
+</html>
